@@ -1,14 +1,21 @@
 #include <iostream>
 #include <fstream>
-#include <unordered_map>
+#include <vector>
 #include <ctime>
 #include <cstdlib>
 
+// This will be stored encrypted
+struct Account {
+    std::string service;
+    std::string username;
+    std::string password; 
+};
+
 class PasswordManager {
 private:
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> passwords;
+    std::vector<Account> accounts;
     const std::string fileName = "passwords.txt";
-    const int shift = 3; // Fixed shift for Caesar cipher
+    const int shift = 3; //shift for Caesar cipher
 
 public:
     PasswordManager() {
@@ -18,7 +25,7 @@ public:
     ~PasswordManager() {
         savePasswords();
     }
-
+    //encrypt function
     std::string encrypt(const std::string& input) {
         std::string encrypted = "";
         for (char c : input) {
@@ -26,12 +33,12 @@ public:
                 char base = islower(c) ? 'a' : 'A';
                 encrypted += char(int(base + (c - base + shift) % 26));
             } else {
-                encrypted += c; // Non-alphabetic characters are not encrypted
+                encrypted += c;
             }
         }
         return encrypted;
     }
-
+    //decrypt function
     std::string decrypt(const std::string& input) {
         std::string decrypted = "";
         for (char c : input) {
@@ -39,7 +46,7 @@ public:
                 char base = islower(c) ? 'a' : 'A';
                 decrypted += char(int(base + (c - base - shift + 26) % 26));
             } else {
-                decrypted += c; // Non-alphabetic characters are not encrypted
+                decrypted += c;
             }
         }
         return decrypted;
@@ -47,19 +54,20 @@ public:
 
     void loadPasswords() {
         std::ifstream file(fileName);
-        std::string service, username, encryptedPassword;
-        while (file >> service >> username >> encryptedPassword) {
-            passwords[service][username] = encryptedPassword; // Keep passwords encrypted in memory
+        std::string service, username, password;
+        while (file >> service >> username >> password) {
+            accounts.push_back({decrypt(service), decrypt(username), password}); // Decrypt service and username, keep password encrypted in memory
         }
         file.close();
     }
 
     void savePasswords() {
         std::ofstream file(fileName);
-        for (const auto &service : passwords) {
-            for (const auto &user : service.second) {
-                file << service.first << " " << user.first << " " << user.second << std::endl; // Store encrypted
-            }
+        for (const auto &account : accounts) {
+            // Encrypt service, username, and password before saving
+            file << encrypt(account.service) << " "
+                 << encrypt(account.username) << " "
+                 << account.password << std::endl; // Password is already encrypted
         }
         file.close();
     }
@@ -78,25 +86,42 @@ public:
     }
 
     void addOrUpdatePassword(const std::string& service, const std::string& username, const std::string& password) {
-        passwords[service][username] = encrypt(password); // Encrypt before storing
+        // Check if account exists and update password
+        for (auto &account : accounts) {
+            if (account.service == service && account.username == username) {
+                account.password = encrypt(password);
+                return;
+            }
+        }
+        // If not found, add new account with encrypted data
+        accounts.push_back({service, username, encrypt(password)});
     }
 
     void displayAccounts() {
-        if (passwords.empty()) {
+        if (accounts.empty()) {
             std::cout << "No accounts stored.\n";
             return;
         }
 
-        for (const auto& service : passwords) {
-            for (const auto& user : service.second) {
-                std::cout << "Service: " << service.first << ", Username: " << user.first << ", Password: " << decrypt(user.second) << std::endl; // Decrypt when displaying
-            }
+        for (const auto& account : accounts) {
+            std::cout << "Service: " << account.service
+                      << ", Username: " << account.username
+                      << ", Password: " << decrypt(account.password) << std::endl; // Decrypt password when displaying
         }
     }
 };
 
 int main() {
     srand(time(nullptr)); // Seed for random number generation
+
+    std::string userInput;
+    std::cout << "Enter the manager password to access your passwords: ";
+    std::cin >> userInput;
+
+    if (userInput != "123") {
+        std::cout << "Incorrect password. Exiting...\n";
+        return 1; // Exit the program if the password is incorrect
+    }
 
     PasswordManager pm;
 
@@ -117,7 +142,7 @@ int main() {
             std::cin >> username;
 
             std::string password = pm.generatePassword(12); // Generate a random 12-character password
-            pm.addOrUpdatePassword(service, username, password); // Encrypt and store the password
+            pm.addOrUpdatePassword(service, username, password); // Store encrypted password
 
             std::cout << "Generated and stored password for " << service << " and username " << username << ".\n";
         } else if (choice == 2) {

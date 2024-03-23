@@ -115,11 +115,11 @@ int main() {
     srand(time(nullptr)); // Seed for random number generation
 
     std::string userInput;
-    std::cout << "Enter the manager password to access your passwords: ";
+    std::cout << "Enter the program password to access your passwords: ";
     std::cin >> userInput;
 
     if (userInput != "123") {
-        std::cout << "Incorrect password. Exiting...\n";
+        std::cout << "Incorrect password. Exiting.\n";
         return 1; // Exit the program if the password is incorrect
     }
 

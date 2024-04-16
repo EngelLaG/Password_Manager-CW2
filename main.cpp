@@ -18,11 +18,11 @@ private:
     const int shift = 3; //shift for Caesar cipher
 
 public:
-    PasswordManager() {
+    PasswordManager() { //const
         loadPasswords();
     }
 
-    ~PasswordManager() {
+    ~PasswordManager() { //dest
         savePasswords();
     }
     //encrypt function
